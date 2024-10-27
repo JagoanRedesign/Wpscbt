@@ -140,7 +140,8 @@ def main():
     application.run_polling()
 
 if __name__ == '__main__':
-    # Jalankan polling di thread terpisah
-    from threading import Thread
-    Thread(target=main).start()
+    # Jalankan aplikasi Flask
     app.run(host='0.0.0.0', port=8000)
+
+    # Jalankan bot Telegram
+    main()
