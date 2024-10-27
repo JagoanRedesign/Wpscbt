@@ -7,40 +7,41 @@ from flask import Flask
 from telegram import Bot, Update
 from telegram.ext import CommandHandler, Updater
 
-# Initialize Flask
+# Inisialisasi Flask
 app = Flask(__name__)
 
-# Replace with your bot's token
+# Ganti dengan token bot Anda
 TOKEN = '6308990102:AAFH_eAfo4imTAWnQ5CZeDUFNAC35rytnT0'
+
 bot = Bot(token=TOKEN)
 
 chapterCount = 0
 
 def get_cover(cover_url, cover_file):
-    """Retrieve and save the cover image."""
+    """Mengambil dan menyimpan gambar sampul."""
     try:
         response = requests.get(cover_url)
         with open(cover_file, 'wb') as f:
             f.write(response.content)
         return 1
     except Exception as error:
-        print("Can't retrieve the cover:", error)
+        print("Tidak dapat mengambil sampul:", error)
         return 0
 
 def clean_text(text):
-    """Clean up the HTML text."""
+    """Membersihkan teks HTML."""
     text = re.sub(r'<p data-p-id=".{32}">', '<p>', text)
     text = re.sub(r'\xa0', '', text)
     return text
 
 def get_page(text_url):
-    """Retrieve and parse the page content."""
+    """Mengambil dan menganalisis konten halaman."""
     response = requests.get(text_url)
     soup = BeautifulSoup(response.content, 'html.parser')
     return soup.select_one('pre').findChildren()
 
 def get_chapter(url):
-    """Get the chapter content from the given URL."""
+    """Mengambil konten bab dari URL yang diberikan."""
     global chapterCount
     chapterCount += 1
     url = requests.utils.quote(url)
@@ -64,19 +65,19 @@ def get_chapter(url):
     return chaptertitle, chapter
 
 def create_pdf(title, author, cover_url, chapters):
-    """Create a PDF file from the book information."""
+    """Membuat file PDF dari informasi buku."""
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
 
-    # Add cover page
+    # Tambahkan halaman sampul
     pdf.add_page()
-    pdf.image(cover_url, x=10, y=10, w=190)  # Adjust position and size
-    pdf.ln(100)  # Add space after the image
+    pdf.image(cover_url, x=10, y=10, w=190)  # Sesuaikan posisi dan ukuran
+    pdf.ln(100)  # Tambahkan ruang setelah gambar
 
     pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"Title: {title}", ln=True, align='C')
-    pdf.cell(200, 10, txt=f"Author: {author}", ln=True, align='C')
-    pdf.cell(200, 10, ln=True)  # Add empty line
+    pdf.cell(200, 10, txt=f"Judul: {title}", ln=True, align='C')
+    pdf.cell(200, 10, txt=f"Penulis: {author}", ln=True, align='C')
+    pdf.cell(200, 10, ln=True)  # Tambahkan baris kosong
 
     for chapter_title, chapter_text in chapters:
         pdf.add_page()
@@ -90,7 +91,7 @@ def create_pdf(title, author, cover_url, chapters):
     return pdf_file
 
 def get_book(initial_url):
-    """Fetch the book details and create a PDF."""
+    """Mengambil detail buku dan membuat PDF."""
     base_url = 'http://www.wattpad.com'
     initial_url = requests.utils.quote(initial_url)
     html = BeautifulSoup(requests.get(initial_url).content, 'html.parser')
@@ -110,11 +111,11 @@ def get_book(initial_url):
     return pdf_file
 
 def start(update: Update, context):
-    """Start command handler."""
+    """Handler untuk perintah mulai."""
     context.bot.send_message(chat_id=update.message.chat_id, text='Selamat datang! Kirimkan URL cerita Wattpad yang ingin diubah menjadi PDF.')
 
 def convert_to_pdf(update: Update, context):
-    """Convert the Wattpad story to PDF."""
+    """Mengonversi cerita Wattpad menjadi PDF."""
     if len(context.args) < 1:
         context.bot.send_message(chat_id=update.message.chat_id, text='Silakan kirim URL Wattpad yang valid.')
         return
@@ -128,19 +129,19 @@ def convert_to_pdf(update: Update, context):
         context.bot.send_message(chat_id=update.message.chat_id, text=f'Gagal mengambil cerita dari Wattpad. Kesalahan: {e}')
 
 def main():
-    """Main function to run the Telegram bot."""
-    updater = Updater(TOKEN)
+    """Fungsi utama untuk menjalankan bot Telegram."""
+    updater = Updater(token=TOKEN, use_context=True)
     dispatcher = updater.dispatcher
 
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("convert", convert_to_pdf))
 
-    # Start polling to receive updates from the Telegram bot
+    # Mulai polling untuk menerima pembaruan dari bot Telegram
     updater.start_polling()
     updater.idle()
 
 if __name__ == '__main__':
-    # Run polling in a separate thread
+    # Jalankan polling di thread terpisah
     from threading import Thread
     Thread(target=main).start()
     app.run(host='0.0.0.0', port=8000)
