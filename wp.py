@@ -64,42 +64,45 @@ def get_chapter(url):
     return chaptertitle, chapter
 
 def create_pdf(title, author, cover_url, chapters):
-   def create_pdf(title, author, cover_url, chapters):
-       """Membuat file PDF dari informasi buku."""
-       pdf = FPDF()
-       pdf.set_auto_page_break(auto=True, margin=15)
-   
-       # Tambahkan halaman sampul
-       pdf.add_page()
-   
-       # Cek format gambar
-       if cover_url.lower().endswith(('.jpg', '.jpeg', '.png')):
-           try:
-               pdf.image(cover_url, x=10, y=10, w=190)  # Sesuaikan posisi dan ukuran
-           except Exception as e:
-               print(f"Kesalahan saat menambahkan gambar: {e}")
-               pdf.cell(200, 10, txt="Gambar sampul tidak dapat dimuat.", ln=True, align='C')
-       else:
-           pdf.cell(200, 10, txt="Format gambar tidak didukung.", ln=True, align='C')
-   
-       pdf.ln(100)  # Tambahkan ruang setelah gambar
-   
-       # Set font default
-       pdf.set_font("Arial", size=12)
-       pdf.cell(200, 10, txt=f"Judul: {title}", ln=True, align='C')
-       pdf.cell(200, 10, txt=f"Penulis: {author}", ln=True, align='C')
-       pdf.cell(200, 10, ln=True)  # Tambahkan baris kosong
-   
-       for chapter_title, chapter_text in chapters:
-           pdf.add_page()
-           pdf.set_font("Arial", 'B', size=14)
-           pdf.cell(200, 10, txt=chapter_title, ln=True)
-           pdf.set_font("Arial", size=12)
-           pdf.multi_cell(0, 10, chapter_text)
-   
-       pdf_file = f"{title} - {author}.pdf"
-       pdf.output(pdf_file)
-       return pdf_file
+    """Membuat file PDF dari informasi buku."""
+    if not chapters:
+        raise ValueError("Tidak ada bab yang ditemukan untuk dibuat PDF.")
+    
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    # Tambahkan halaman sampul
+    pdf.add_page()
+
+    # Cek format gambar
+    if cover_url.lower().endswith(('.jpg', '.jpeg', '.png')):
+        try:
+            pdf.image(cover_url, x=10, y=10, w=190)  # Sesuaikan posisi dan ukuran
+        except Exception as e:
+            print(f"Kesalahan saat menambahkan gambar: {e}")
+            pdf.cell(200, 10, txt="Gambar sampul tidak dapat dimuat.", ln=True, align='C')
+    else:
+        pdf.cell(200, 10, txt="Format gambar tidak didukung.", ln=True, align='C')
+
+    pdf.ln(100)  # Tambahkan ruang setelah gambar
+
+    # Set font default
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"Judul: {title}", ln=True, align='C')
+    pdf.cell(200, 10, txt=f"Penulis: {author}", ln=True, align='C')
+    pdf.cell(200, 10, ln=True)  # Tambahkan baris kosong
+
+    for chapter_title, chapter_text in chapters:
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', size=14)
+        pdf.cell(200, 10, txt=chapter_title, ln=True)
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(0, 10, chapter_text)
+
+    pdf_file = f"{title} - {author}.pdf"
+    pdf.output(pdf_file)
+    return pdf_file
+
 
 def get_book(initial_url):
     """Mengambil detail buku dan membuat PDF."""
@@ -136,6 +139,7 @@ def get_book(initial_url):
     # Membuat PDF
     pdf_file = create_pdf(title, author, coverurl, chapters)
     return pdf_file
+
 
 async def start(update: Update, context):
     """Handler untuk perintah mulai."""
