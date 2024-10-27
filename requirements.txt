@@ -2,4 +2,5 @@ Flask
 python-telegram-bot==20.0
 beautifulsoup4
 requests
-fpd
+fpdf
+Werkzeug
