@@ -14,6 +14,7 @@ app = Flask(__name__)
 # Ganti dengan token bot Anda
 TOKEN = '6308990102:AAFH_eAfo4imTAWnQ5CZeDUFNAC35rytnT0'
 
+
 chapterCount = 0
 
 # User-Agent header
@@ -76,6 +77,7 @@ def create_epub(title, author, chapters):
     book = epub.EpubBook()
     book.set_title(title)
     book.set_language('en')
+    book.add_author(author)  # Pastikan penulis ditambahkan
 
     # Menambahkan stylesheet
     css = '''
@@ -106,7 +108,7 @@ def create_epub(title, author, chapters):
         book.add_item(chapter)
 
     # Menambahkan daftar isi
-    book.toc = (epub.Link('nav.xhtml', 'Daftar Isi', 'nav'), (chapter for chapter_title, chapter_text in chapters))
+    book.toc = (epub.Link('nav.xhtml', 'Daftar Isi', 'nav'), [chapter for chapter in chapters])
 
     # Menambahkan item navigasi
     book.add_item(epub.EpubNcx())
@@ -115,6 +117,11 @@ def create_epub(title, author, chapters):
     # Menyimpan file EPUB
     epub_filename = f"{title} - {author}.epub"
     epub.write_epub(epub_filename, book)
+
+    # Memastikan file berhasil dibuat
+    if not os.path.exists(epub_filename):
+        raise FileNotFoundError("File EPUB tidak berhasil dibuat.")
+    
     return epub_filename
 
 def get_book(initial_url):
