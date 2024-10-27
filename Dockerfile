@@ -11,8 +11,5 @@ COPY wp.py .
 # Menginstal dependensi
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Mengupgrade fpdf atau fpdf ke versi terbaru
-RUN pip install --no-cache-dir --upgrade fpdf2  # Ganti dengan fpdf jika perlu
-
 # Menjalankan aplikasi Flask
 CMD ["python", "wp.py"]
