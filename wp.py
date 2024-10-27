@@ -83,6 +83,7 @@ def create_pdf(title, author, cover_url, chapters):
 
     pdf.ln(100)  # Tambahkan ruang setelah gambar
 
+    # Set font default
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, txt=f"Judul: {title}", ln=True, align='C')
     pdf.cell(200, 10, txt=f"Penulis: {author}", ln=True, align='C')
