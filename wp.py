@@ -12,7 +12,7 @@ from ebooklib import epub  # Pastikan untuk mengimpor pustaka ini
 app = Flask(__name__)
 
 # Ganti dengan token bot Anda
-TOKEN = '6308990102:AAFH_eAfo4imTAWnQ5CZeDUFNAC35rytnT0
+TOKEN = '6308990102:AAFH_eAfo4imTAWnQ5CZeDUFNAC35rytnT0'
 
 chapterCount = 0
 
