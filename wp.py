@@ -109,23 +109,23 @@ def get_book(initial_url):
     pdf_file = create_pdf(title, author, coverurl, chapters)
     return pdf_file
 
-def start(update: Update, context):
+async def start(update: Update, context):
     """Handler untuk perintah mulai."""
-    context.bot.send_message(chat_id=update.message.chat_id, text='Selamat datang! Kirimkan URL cerita Wattpad yang ingin diubah menjadi PDF.')
+    await context.bot.send_message(chat_id=update.message.chat_id, text='Selamat datang! Kirimkan URL cerita Wattpad yang ingin diubah menjadi PDF.')
 
-def convert_to_pdf(update: Update, context):
+async def convert_to_pdf(update: Update, context):
     """Mengonversi cerita Wattpad menjadi PDF."""
     if len(context.args) < 1:
-        context.bot.send_message(chat_id=update.message.chat_id, text='Silakan kirim URL Wattpad yang valid.')
+        await context.bot.send_message(chat_id=update.message.chat_id, text='Silakan kirim URL Wattpad yang valid.')
         return
 
     wattpad_url = context.args[0]
     try:
         pdf_file = get_book(wattpad_url)
         with open(pdf_file, 'rb') as file:
-            context.bot.send_document(chat_id=update.message.chat_id, document=file)
+            await context.bot.send_document(chat_id=update.message.chat_id, document=file)
     except Exception as e:
-        context.bot.send_message(chat_id=update.message.chat_id, text=f'Gagal mengambil cerita dari Wattpad. Kesalahan: {e}')
+        await context.bot.send_message(chat_id=update.message.chat_id, text=f'Gagal mengambil cerita dari Wattpad. Kesalahan: {e}')
 
 def run_flask():
     """Menjalankan aplikasi Flask."""
