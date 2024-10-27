@@ -7,7 +7,6 @@ from flask import Flask
 from telegram import Update
 from telegram.ext import CommandHandler, ApplicationBuilder
 import threading
-from gslibs.gsepub import MyBook
 
 
 # Inisialisasi Flask
@@ -161,48 +160,9 @@ def get_book(initial_url):
     pdf_file = create_pdf(title, author, coverurl, chapters)
     return pdf_file
 
-def get_book_epub(initial_url):
-    """Mengambil detail buku dan membuat EPUB."""
-    base_url = 'http://www.wattpad.com'
-    initial_url = requests.utils.quote(initial_url)
-    html = get_soup(initial_url)
-
-    author = html.select('div.author-info__username')[0].get_text()
-    title = html.select('div.story-info__title')[0].get_text().strip()
-    coverurl = html.select('div.story-cover img')[0]['src']
-    chapterlist = list(dict.fromkeys(html.select('.story-parts ul li a')))
-    
-    filename = title
-    for i in ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '^']:
-        if i in filename:
-            filename = filename.replace(i, '')
-    filename = filename.lstrip('.')
-
-    epubfile = "{} - {}.epub".format(filename, author)
-    if not os.path.exists(epubfile):
-        identifier = "wattpad.com//%s/%s" % (initial_url.split('/')[-1], len(chapterlist))
-        LANGUAGE = 'en'
-        book = MyBook(identifier, title, LANGUAGE, 'wattpad2epub')
-        book.add_author(author)
-
-        cover_file = 'cover.jpg'
-        if get_cover(coverurl, cover_file):
-            book.add_cover(cover_file)
-            os.remove(cover_file)
-
-        for item in chapterlist:
-            chaptertitle = item.get_text().strip().replace("/", "-")
-            if chaptertitle.upper() != "A-N":
-                ch_file, ch_text = get_chapter("{}{}".format(base_url, item['href']))
-                book.add_chapter(chaptertitle, ch_file, LANGUAGE, ch_text)
-
-        book.finalize()
-        book.write(epubfile)
-    return epubfile
-
 async def start(update: Update, context):
     """Handler untuk perintah mulai."""
-    await context.bot.send_message(chat_id=update.message.chat_id, text='Selamat datang! Kirimkan URL cerita Wattpad yang ingin diubah menjadi PDF atau EPUB.')
+    await context.bot.send_message(chat_id=update.message.chat_id, text='Selamat datang! Kirimkan URL cerita Wattpad yang ingin diubah menjadi PDF.')
 
 async def convert_to_pdf(update: Update, context):
     """Mengonversi cerita Wattpad menjadi PDF."""
@@ -222,24 +182,6 @@ async def convert_to_pdf(update: Update, context):
     except Exception as e:
         await context.bot.send_message(chat_id=update.message.chat_id, text=f'Gagal mengambil cerita dari Wattpad. Kesalahan: {e}')
 
-async def convert_to_epub(update: Update, context):
-    """Mengonversi cerita Wattpad menjadi EPUB."""
-    if len(context.args) < 1:
-        await context.bot.send_message(chat_id=update.message.chat_id, text='Silakan kirim URL Wattpad yang valid.')
-        return
-
-    wattpad_url = context.args[0]
-    
-    if not wattpad_url.startswith("http://") and not wattpad_url.startswith("https://"):
-        wattpad_url = "https://" + wattpad_url
-
-    try:
-        epub_file = get_book_epub(wattpad_url)
-        with open(epub_file, 'rb') as file:
-            await context.bot.send_document(chat_id=update.message.chat_id, document=file)
-    except Exception as e:
-        await context.bot.send_message(chat_id=update.message.chat_id, text=f'Gagal mengambil cerita dari Wattpad. Kesalahan: {e}')
-
 def run_flask():
     """Menjalankan aplikasi Flask."""
     app.run(host='0.0.0.0', port=8000)
@@ -251,7 +193,6 @@ def main():
     # Menambahkan handler
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("convert_pdf", convert_to_pdf))
-    application.add_handler(CommandHandler("convert_epub", convert_to_epub))
 
     # Mulai polling untuk menerima pembaruan dari bot Telegram
     application.run_polling()
