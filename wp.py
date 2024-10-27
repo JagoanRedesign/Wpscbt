@@ -39,14 +39,14 @@ def clean_text(text):
 
 def get_page(text_url):
     """Mengambil dan menganalisis konten halaman."""
-    text_url = requests.utils.quote(text_url)
+    text_url = text_url
     text = get_soup(text_url).select_one('pre').findChildren()
     return text
 
 def get_chapter(url):
     """Mengambil konten bab dari URL yang diberikan."""
     global chapterCount
-    url = requests.utils.quote(url)
+    url = url
     chapterCount += 1
     pagehtml = get_soup(url)
 
