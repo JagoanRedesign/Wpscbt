@@ -120,6 +120,10 @@ async def convert_to_pdf(update: Update, context):
         return
 
     wattpad_url = context.args[0]
+
+    # Menghapus encoding berlebih dari URL jika ada
+    wattpad_url = requests.utils.unquote(wattpad_url)
+
     try:
         pdf_file = get_book(wattpad_url)
         with open(pdf_file, 'rb') as file:
