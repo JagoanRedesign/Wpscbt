@@ -113,7 +113,10 @@ def get_book(initial_url):
         initial_url = "https://" + initial_url
 
     # Mengambil konten halaman
-    html = BeautifulSoup(requests.get(initial_url).content, 'html.parser')
+    try:
+        html = BeautifulSoup(requests.get(initial_url).content, 'html.parser')
+    except Exception as e:
+        raise ValueError(f"Gagal mengambil halaman: {e}")
 
     # Ambil informasi penulis
     author_elem = html.select('div.author-info__username')
@@ -128,7 +131,8 @@ def get_book(initial_url):
     coverurl = cover_elem[0]['src'] if cover_elem else ""
 
     # Ambil daftar bab
-    chapterlist = list(dict.fromkeys(html.select('.story-parts ul li a')))
+    chapterlist = html.select('.table-of-contents li a')
+    print(f"Jumlah bab yang ditemukan: {len(chapterlist)}")  # Debugging
     chapters = []
 
     # Mengambil setiap bab
@@ -139,7 +143,10 @@ def get_book(initial_url):
     # Membuat PDF
     pdf_file = create_pdf(title, author, coverurl, chapters)
     return pdf_file
-
+    
+    
+    
+    
 
 async def start(update: Update, context):
     """Handler untuk perintah mulai."""
