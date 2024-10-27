@@ -7,24 +7,36 @@ from flask import Flask
 from telegram import Update
 from telegram.ext import CommandHandler, ApplicationBuilder
 import threading
+from libs.gsepub import MyBook
 
 # Inisialisasi Flask
 app = Flask(__name__)
 
 # Ganti dengan token bot Anda
-TOKEN = '6308990102:AAFH_eAfo4imTAWnQ5CZeDUFNAC35rytnT0'
+TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
 
 chapterCount = 0
 
 # User-Agent header
-headers = {
+HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 }
+
+def get_url(url):
+    """Fetch the content of the URL with a User-Agent."""
+    response = requests.get(url, headers=HEADERS)
+    response.raise_for_status()  # Raises an error for bad responses
+    return response.content
+
+def get_soup(url):
+    """Fetch the soup object from a URL."""
+    html_content = get_url(url)
+    return BeautifulSoup(html_content, 'html.parser')
 
 def get_cover(cover_url, cover_file):
     """Mengambil dan menyimpan gambar sampul."""
     try:
-        response = requests.get(cover_url, headers=headers)
+        response = requests.get(cover_url)
         with open(cover_file, 'wb') as f:
             f.write(response.content)
         return 1
@@ -40,31 +52,31 @@ def clean_text(text):
 
 def get_page(text_url):
     """Mengambil dan menganalisis konten halaman."""
-    response = requests.get(text_url, headers=headers)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    return soup.select_one('pre').findChildren()
+    text_url = requests.utils.quote(text_url)
+    text = get_soup(text_url).select_one('pre').findChildren()
+    return text
 
 def get_chapter(url):
     """Mengambil konten bab dari URL yang diberikan."""
     global chapterCount
-    chapterCount += 1
     url = requests.utils.quote(url)
-    pagehtml = BeautifulSoup(requests.get(url, headers=headers).content, 'html.parser')
-    
+    chapterCount += 1
+    pagehtml = get_soup(url)
+
     pages_re = re.compile('"pages":([0-9]*),', re.IGNORECASE)
     pages = int(pages_re.search(str(pagehtml)).group(1))
-    
+
     text = []
     chaptertitle = pagehtml.select('h1.h2')[0].get_text().strip()
     text.append("<h2>{}</h2>\n".format(chaptertitle))
-    
+
     for i in range(1, pages + 1):
         page_url = url + "/page/" + str(i)
         text.append('<div class="page">\n')
         for j in get_page(page_url):
             text.append(j.prettify())
         text.append('</div>\n')
-    
+
     chapter = "".join(text)
     return chaptertitle, chapter
 
@@ -72,7 +84,7 @@ def create_pdf(title, author, cover_url, chapters):
     """Membuat file PDF dari informasi buku."""
     if not chapters:
         raise ValueError("Tidak ada bab yang ditemukan untuk dibuat PDF.")
-    
+
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
 
@@ -82,7 +94,7 @@ def create_pdf(title, author, cover_url, chapters):
     # Cek format gambar
     if cover_url.lower().endswith(('.jpg', '.jpeg', '.png')):
         try:
-            pdf.image(cover_url, x=10, y=10, w=190)  # Sesuaikan posisi dan ukuran
+            pdf.image(cover_url, x=10, y=10, w=190)
         except Exception as e:
             print(f"Kesalahan saat menambahkan gambar: {e}")
             pdf.cell(200, 10, txt="Gambar sampul tidak dapat dimuat.", ln=True, align='C')
@@ -118,7 +130,7 @@ def get_book(initial_url):
 
     # Mengambil konten halaman
     try:
-        html = BeautifulSoup(requests.get(initial_url, headers=headers).content, 'html.parser')
+        html = get_soup(initial_url)
     except Exception as e:
         raise ValueError(f"Gagal mengambil halaman: {e}")
 
@@ -148,9 +160,48 @@ def get_book(initial_url):
     pdf_file = create_pdf(title, author, coverurl, chapters)
     return pdf_file
 
+def get_book_epub(initial_url):
+    """Mengambil detail buku dan membuat EPUB."""
+    base_url = 'http://www.wattpad.com'
+    initial_url = requests.utils.quote(initial_url)
+    html = get_soup(initial_url)
+
+    author = html.select('div.author-info__username')[0].get_text()
+    title = html.select('div.story-info__title')[0].get_text().strip()
+    coverurl = html.select('div.story-cover img')[0]['src']
+    chapterlist = list(dict.fromkeys(html.select('.story-parts ul li a')))
+    
+    filename = title
+    for i in ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '^']:
+        if i in filename:
+            filename = filename.replace(i, '')
+    filename = filename.lstrip('.')
+
+    epubfile = "{} - {}.epub".format(filename, author)
+    if not os.path.exists(epubfile):
+        identifier = "wattpad.com//%s/%s" % (initial_url.split('/')[-1], len(chapterlist))
+        LANGUAGE = 'en'
+        book = MyBook(identifier, title, LANGUAGE, 'wattpad2epub')
+        book.add_author(author)
+
+        cover_file = 'cover.jpg'
+        if get_cover(coverurl, cover_file):
+            book.add_cover(cover_file)
+            os.remove(cover_file)
+
+        for item in chapterlist:
+            chaptertitle = item.get_text().strip().replace("/", "-")
+            if chaptertitle.upper() != "A-N":
+                ch_file, ch_text = get_chapter("{}{}".format(base_url, item['href']))
+                book.add_chapter(chaptertitle, ch_file, LANGUAGE, ch_text)
+
+        book.finalize()
+        book.write(epubfile)
+    return epubfile
+
 async def start(update: Update, context):
     """Handler untuk perintah mulai."""
-    await context.bot.send_message(chat_id=update.message.chat_id, text='Selamat datang! Kirimkan URL cerita Wattpad yang ingin diubah menjadi PDF.')
+    await context.bot.send_message(chat_id=update.message.chat_id, text='Selamat datang! Kirimkan URL cerita Wattpad yang ingin diubah menjadi PDF atau EPUB.')
 
 async def convert_to_pdf(update: Update, context):
     """Mengonversi cerita Wattpad menjadi PDF."""
@@ -159,17 +210,31 @@ async def convert_to_pdf(update: Update, context):
         return
 
     wattpad_url = context.args[0]
-
-    # Memastikan URL memiliki skema yang benar
+    
     if not wattpad_url.startswith("http://") and not wattpad_url.startswith("https://"):
         wattpad_url = "https://" + wattpad_url
-
-    # Debug: cetak URL yang akan digunakan
-    print(f"URL digunakan: {wattpad_url}")
 
     try:
         pdf_file = get_book(wattpad_url)
         with open(pdf_file, 'rb') as file:
+            await context.bot.send_document(chat_id=update.message.chat_id, document=file)
+    except Exception as e:
+        await context.bot.send_message(chat_id=update.message.chat_id, text=f'Gagal mengambil cerita dari Wattpad. Kesalahan: {e}')
+
+async def convert_to_epub(update: Update, context):
+    """Mengonversi cerita Wattpad menjadi EPUB."""
+    if len(context.args) < 1:
+        await context.bot.send_message(chat_id=update.message.chat_id, text='Silakan kirim URL Wattpad yang valid.')
+        return
+
+    wattpad_url = context.args[0]
+    
+    if not wattpad_url.startswith("http://") and not wattpad_url.startswith("https://"):
+        wattpad_url = "https://" + wattpad_url
+
+    try:
+        epub_file = get_book_epub(wattpad_url)
+        with open(epub_file, 'rb') as file:
             await context.bot.send_document(chat_id=update.message.chat_id, document=file)
     except Exception as e:
         await context.bot.send_message(chat_id=update.message.chat_id, text=f'Gagal mengambil cerita dari Wattpad. Kesalahan: {e}')
@@ -184,7 +249,8 @@ def main():
 
     # Menambahkan handler
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("convert", convert_to_pdf))
+    application.add_handler(CommandHandler("convert_pdf", convert_to_pdf))
+    application.add_handler(CommandHandler("convert_epub", convert_to_epub))
 
     # Mulai polling untuk menerima pembaruan dari bot Telegram
     application.run_polling()
