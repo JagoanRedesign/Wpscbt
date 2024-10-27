@@ -2,7 +2,7 @@ import os
 import re
 import requests
 from bs4 import BeautifulSoup
-from fpdf2 import FPDF
+from fpdf import FPDF
 from flask import Flask
 from telegram import Update
 from telegram.ext import CommandHandler, ApplicationBuilder
