@@ -2,12 +2,10 @@ import os
 import re
 import requests
 from bs4 import BeautifulSoup
-from fpdf import FPDF
 from flask import Flask
 from telegram import Update
 from telegram.ext import CommandHandler, ApplicationBuilder
 import threading
-
 
 # Inisialisasi Flask
 app = Flask(__name__)
@@ -32,17 +30,6 @@ def get_soup(url):
     """Fetch the soup object from a URL."""
     html_content = get_url(url)
     return BeautifulSoup(html_content, 'html.parser')
-
-def get_cover(cover_url, cover_file):
-    """Mengambil dan menyimpan gambar sampul."""
-    try:
-        response = requests.get(cover_url)
-        with open(cover_file, 'wb') as f:
-            f.write(response.content)
-        return 1
-    except Exception as error:
-        print("Tidak dapat mengambil sampul:", error)
-        return 0
 
 def clean_text(text):
     """Membersihkan teks HTML."""
@@ -80,48 +67,58 @@ def get_chapter(url):
     chapter = "".join(text)
     return chaptertitle, chapter
 
-def create_pdf(title, author, cover_url, chapters):
-    """Membuat file PDF dari informasi buku."""
+def create_epub(title, author, chapters):
+    """Membuat file EPUB dari informasi buku."""
     if not chapters:
-        raise ValueError("Tidak ada bab yang ditemukan untuk dibuat PDF.")
+        raise ValueError("Tidak ada bab yang ditemukan untuk dibuat EPUB.")
 
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
+    # Ganti dengan pengaturan EPUB yang sesuai
+    book = epub.EpubBook()
+    book.set_title(title)
+    book.set_language('en')
 
-    # Tambahkan halaman sampul
-    pdf.add_page()
+    # Menambahkan stylesheet
+    css = '''
+    @page { margin: 1em; }
+    body { font-family: Arial, sans-serif; line-height: 1.5; }
+    h2 { color: #333; }
+    '''
+    
+    style = epub.EpubItem(uid="style", file_name="css/main.css", media_type="text/css", content=css)
+    book.add_item(style)
 
-    # Cek format gambar
-    if cover_url.lower().endswith(('.jpg', '.jpeg', '.png')):
-        try:
-            pdf.image(cover_url, x=10, y=10, w=190)
-        except Exception as e:
-            print(f"Kesalahan saat menambahkan gambar: {e}")
-            pdf.cell(200, 10, txt="Gambar sampul tidak dapat dimuat.", ln=True, align='C')
-    else:
-        pdf.cell(200, 10, txt="Format gambar tidak didukung.", ln=True, align='C')
-
-    pdf.ln(100)  # Tambahkan ruang setelah gambar
-
-    # Set font default
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"Judul: {title}", ln=True, align='C')
-    pdf.cell(200, 10, txt=f"Penulis: {author}", ln=True, align='C')
-    pdf.cell(200, 10, ln=True)  # Tambahkan baris kosong
-
+    # Menambahkan bab ke buku EPUB
     for chapter_title, chapter_text in chapters:
-        pdf.add_page()
-        pdf.set_font("Arial", 'B', size=14)
-        pdf.cell(200, 10, txt=chapter_title, ln=True)
-        pdf.set_font("Arial", size=12)
-        pdf.multi_cell(0, 10, chapter_text)
+        chapter = epub.EpubHtml(title=chapter_title, file_name=f'{chapter_title}.xhtml', lang='en')
+        chapter.set_content(f'''
+        <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+            <head>
+                <title>{chapter_title}</title>
+                <link rel="stylesheet" href="css/main.css" type="text/css"/>
+            </head>
+            <body>
+                <div class="chapter">
+                    <h2>{chapter_title}</h2>
+                    <div class="text">{chapter_text}</div>
+                </div>
+            </body>
+        </html>''')
+        book.add_item(chapter)
 
-    pdf_file = f"{title} - {author}.pdf"
-    pdf.output(pdf_file)
-    return pdf_file
+    # Menambahkan daftar isi
+    book.toc = (epub.Link('nav.xhtml', 'Daftar Isi', 'nav'), (chapter for chapter_title, chapter_text in chapters))
+
+    # Menambahkan item navigasi
+    book.add_item(epub.EpubNcx())
+    book.add_item(epub.EpubNav())
+
+    # Menyimpan file EPUB
+    epub_filename = f"{title} - {author}.epub"
+    epub.write_epub(epub_filename, book)
+    return epub_filename
 
 def get_book(initial_url):
-    """Mengambil detail buku dan membuat PDF."""
+    """Mengambil detail buku dan membuat EPUB."""
     base_url = 'http://www.wattpad.com'
     
     # Pastikan URL memiliki skema yang benar
@@ -142,10 +139,6 @@ def get_book(initial_url):
     title_elem = html.select('div.story-info__title')
     title = title_elem[0].get_text().strip() if title_elem else "Tidak Diketahui"
 
-    # Ambil URL sampul
-    cover_elem = html.select('div.story-cover img')
-    coverurl = cover_elem[0]['src'] if cover_elem else ""
-
     # Ambil daftar bab
     chapterlist = html.select('.table-of-contents li a')
     print(f"Jumlah bab yang ditemukan: {len(chapterlist)}")  # Debugging
@@ -156,16 +149,16 @@ def get_book(initial_url):
         chaptertitle, ch_text = get_chapter(f"{base_url}{item['href']}")
         chapters.append((chaptertitle, clean_text(ch_text)))
 
-    # Membuat PDF
-    pdf_file = create_pdf(title, author, coverurl, chapters)
-    return pdf_file
+    # Membuat EPUB
+    epub_file = create_epub(title, author, chapters)
+    return epub_file
 
 async def start(update: Update, context):
     """Handler untuk perintah mulai."""
-    await context.bot.send_message(chat_id=update.message.chat_id, text='Selamat datang! Kirimkan URL cerita Wattpad yang ingin diubah menjadi PDF.')
+    await context.bot.send_message(chat_id=update.message.chat_id, text='Selamat datang! Kirimkan URL cerita Wattpad yang ingin diubah menjadi EPUB.')
 
-async def convert_to_pdf(update: Update, context):
-    """Mengonversi cerita Wattpad menjadi PDF."""
+async def convert_to_epub(update: Update, context):
+    """Mengonversi cerita Wattpad menjadi EPUB."""
     if len(context.args) < 1:
         await context.bot.send_message(chat_id=update.message.chat_id, text='Silakan kirim URL Wattpad yang valid.')
         return
@@ -176,8 +169,8 @@ async def convert_to_pdf(update: Update, context):
         wattpad_url = "https://" + wattpad_url
 
     try:
-        pdf_file = get_book(wattpad_url)
-        with open(pdf_file, 'rb') as file:
+        epub_file = get_book(wattpad_url)
+        with open(epub_file, 'rb') as file:
             await context.bot.send_document(chat_id=update.message.chat_id, document=file)
     except Exception as e:
         await context.bot.send_message(chat_id=update.message.chat_id, text=f'Gagal mengambil cerita dari Wattpad. Kesalahan: {e}')
@@ -192,7 +185,7 @@ def main():
 
     # Menambahkan handler
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("convert_pdf", convert_to_pdf))
+    application.add_handler(CommandHandler("convert_epub", convert_to_epub))
 
     # Mulai polling untuk menerima pembaruan dari bot Telegram
     application.run_polling()
