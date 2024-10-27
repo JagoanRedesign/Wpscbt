@@ -7,13 +7,13 @@ from flask import Flask
 from telegram import Update
 from telegram.ext import CommandHandler, ApplicationBuilder
 import threading
-from libs.gsepub import MyBook
+from gslibs.gsepub import MyBook
 
 # Inisialisasi Flask
 app = Flask(__name__)
 
 # Ganti dengan token bot Anda
-TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+TOKEN = '6308990102:AAFH_eAfo4imTAWnQ5CZeDUFNAC35rytnT0'
 
 chapterCount = 0
 
