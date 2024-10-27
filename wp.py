@@ -12,7 +12,7 @@ from ebooklib import epub  # Pastikan untuk mengimpor pustaka ini
 app = Flask(__name__)
 
 # Ganti dengan token bot Anda
-TOKEN = '6308990102:AAFH_eAfo4imTAWnQ5CZeDUFNAC35rytnT0'
+TOKEN = '6308990102:AAFH_eAfo4imTAWnQ5CZeDUFNAC35rytnT0
 
 chapterCount = 0
 
@@ -40,8 +40,10 @@ def clean_text(text):
 
 def get_page(text_url):
     """Mengambil dan menganalisis konten halaman."""
-    text = get_soup(text_url).select_one('pre').findChildren()
-    return text
+    soup = get_soup(text_url)
+    content_elem = soup.select('div.panel.panel-reading p[data-p-id]')
+    cleaned_content = [clean_text(str(para)) for para in content_elem]
+    return ''.join(cleaned_content)
 
 def get_chapter(url):
     """Mengambil konten bab dari URL yang diberikan."""
@@ -57,10 +59,10 @@ def get_chapter(url):
     text.append("<h2>{}</h2>\n".format(chaptertitle))
 
     for i in range(1, pages + 1):
-        page_url = url + "/page/" + str(i)
+        page_url = f"{url}/page/{i}"
         text.append('<div class="page">\n')
-        for j in get_page(page_url):
-            text.append(j.prettify())
+        page_content = get_page(page_url)
+        text.append(page_content)
         text.append('</div>\n')
 
     chapter = "".join(text)
@@ -71,7 +73,6 @@ def create_epub(title, author, chapters):
     if not chapters:
         raise ValueError("Tidak ada bab yang ditemukan untuk dibuat EPUB.")
 
-    # Ganti dengan pengaturan EPUB yang sesuai
     book = epub.EpubBook()
     book.set_title(title)
     book.set_language('en')
@@ -120,35 +121,28 @@ def get_book(initial_url):
     """Mengambil detail buku dan membuat EPUB."""
     base_url = 'http://www.wattpad.com'
     
-    # Pastikan URL memiliki skema yang benar
     if not initial_url.startswith("http://") and not initial_url.startswith("https://"):
         initial_url = "https://" + initial_url
 
-    # Mengambil konten halaman
     try:
         html = get_soup(initial_url)
     except Exception as e:
         raise ValueError(f"Gagal mengambil halaman: {e}")
 
-    # Ambil informasi penulis
     author_elem = html.select('div.author-info__username')
     author = author_elem[0].get_text() if author_elem else "Tidak Diketahui"
 
-    # Ambil informasi judul
     title_elem = html.select('div.story-info__title')
     title = title_elem[0].get_text().strip() if title_elem else "Tidak Diketahui"
 
-    # Ambil daftar bab
     chapterlist = html.select('.table-of-contents li a')
     print(f"Jumlah bab yang ditemukan: {len(chapterlist)}")  # Debugging
     chapters = []
 
-    # Mengambil setiap bab
     for item in chapterlist:
         chaptertitle, ch_text = get_chapter(f"{base_url}{item['href']}")
         chapters.append((chaptertitle, clean_text(ch_text)))
 
-    # Membuat EPUB
     epub_file = create_epub(title, author, chapters)
     return epub_file
 
