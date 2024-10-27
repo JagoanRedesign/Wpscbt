@@ -1,5 +1,5 @@
-python-telegram-bot
-requests
-beautifulsoup4
-fpdf
-Flask
+Flask==2.0.2
+python-telegram-bot==20.0
+beautifulsoup4==4.10.0
+requests==2.26.0
+fpdf==1.7.2
