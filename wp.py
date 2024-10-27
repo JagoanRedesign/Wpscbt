@@ -123,7 +123,8 @@ async def convert_to_pdf(update: Update, context):
     wattpad_url = context.args[0]
     
     # Menghapus encoding berlebih dari URL jika ada
-    wattpad_url = requests.utils.unquote(wattpad_url)
+    #wattpad_url = requests.utils.unquote(wattpad_url)
+    
 
     # Memastikan URL memiliki skema yang benar
     if not wattpad_url.startswith("http://") and not wattpad_url.startswith("https://"):
