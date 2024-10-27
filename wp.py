@@ -127,11 +127,11 @@ async def convert_to_pdf(update: Update, context):
     
 
     # Memastikan URL memiliki skema yang benar
-    if not wattpad_url.startswith("http://") and not wattpad_url.startswith("https://"):
-        wattpad_url = "https://" + wattpad_url
+    #if not wattpad_url.startswith("http://") and not wattpad_url.startswith("https://"):
+        #wattpad_url = "https://" + wattpad_url
 
     # Debug: cetak URL yang akan digunakan
-    print(f"URL yang digunakan: {wattpad_url}")
+    print(f"URl digunakan: {wattpad_url}")
 
     try:
         pdf_file = get_book(wattpad_url)
