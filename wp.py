@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from fpdf import FPDF
 from flask import Flask
 from telegram import Bot, Update
-from telegram.ext import CommandHandler, Updater
+from telegram.ext import CommandHandler, ApplicationBuilder
 
 # Inisialisasi Flask
 app = Flask(__name__)
@@ -130,15 +130,14 @@ def convert_to_pdf(update: Update, context):
 
 def main():
     """Fungsi utama untuk menjalankan bot Telegram."""
-    updater = Updater(token=TOKEN, use_context=True)
-    dispatcher = updater.dispatcher
+    application = ApplicationBuilder().token(TOKEN).build()
+    dispatcher = application.dispatcher
 
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("convert", convert_to_pdf))
 
     # Mulai polling untuk menerima pembaruan dari bot Telegram
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 if __name__ == '__main__':
     # Jalankan polling di thread terpisah
