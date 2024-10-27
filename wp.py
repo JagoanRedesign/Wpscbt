@@ -11,7 +11,7 @@ from telegram.ext import CommandHandler, Updater
 app = Flask(__name__)
 
 # Replace with your bot's token
-TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+TOKEN = '6308990102:AAFH_eAfo4imTAWnQ5CZeDUFNAC35rytnT0'
 bot = Bot(token=TOKEN)
 
 chapterCount = 0
