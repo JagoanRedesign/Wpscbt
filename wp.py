@@ -6,6 +6,7 @@ from flask import Flask
 from telegram import Update
 from telegram.ext import CommandHandler, ApplicationBuilder
 import threading
+from ebooklib import epub  # Pastikan untuk mengimpor pustaka ini
 
 # Inisialisasi Flask
 app = Flask(__name__)
@@ -39,14 +40,12 @@ def clean_text(text):
 
 def get_page(text_url):
     """Mengambil dan menganalisis konten halaman."""
-    text_url = text_url
     text = get_soup(text_url).select_one('pre').findChildren()
     return text
 
 def get_chapter(url):
     """Mengambil konten bab dari URL yang diberikan."""
     global chapterCount
-    url = url
     chapterCount += 1
     pagehtml = get_soup(url)
 
