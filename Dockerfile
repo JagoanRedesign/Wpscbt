@@ -12,7 +12,7 @@ COPY wp.py .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Mengupgrade fpdf atau fpdf ke versi terbaru
-RUN pip install --no-cache-dir --upgrade fpdf  # Ganti dengan fpdf jika perlu
+RUN pip install --no-cache-dir --upgrade fpdf2  # Ganti dengan fpdf jika perlu
 
 # Menjalankan aplikasi Flask
 CMD ["python", "wp.py"]
