@@ -12,7 +12,7 @@ import threading
 app = Flask(__name__)
 
 # Ganti dengan token bot Anda
-TOKEN = 'YOUR_TOKEN_HERE'
+TOKEN = '6308990102:AAFH_eAfo4imTAWnQ5CZeDUFNAC35rytnT0'
 
 chapterCount = 0
 
