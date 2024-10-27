@@ -113,6 +113,7 @@ async def start(update: Update, context):
     """Handler untuk perintah mulai."""
     await context.bot.send_message(chat_id=update.message.chat_id, text='Selamat datang! Kirimkan URL cerita Wattpad yang ingin diubah menjadi PDF.')
 
+
 async def convert_to_pdf(update: Update, context):
     """Mengonversi cerita Wattpad menjadi PDF."""
     if len(context.args) < 1:
@@ -120,9 +121,16 @@ async def convert_to_pdf(update: Update, context):
         return
 
     wattpad_url = context.args[0]
-
+    
     # Menghapus encoding berlebih dari URL jika ada
     wattpad_url = requests.utils.unquote(wattpad_url)
+
+    # Memastikan URL memiliki skema yang benar
+    if not wattpad_url.startswith("http://") and not wattpad_url.startswith("https://"):
+        wattpad_url = "https://" + wattpad_url
+
+    # Debug: cetak URL yang akan digunakan
+    print(f"URL yang digunakan: {wattpad_url}")
 
     try:
         pdf_file = get_book(wattpad_url)
