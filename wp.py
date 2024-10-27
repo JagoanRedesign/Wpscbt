@@ -92,20 +92,36 @@ def create_pdf(title, author, cover_url, chapters):
 def get_book(initial_url):
     """Mengambil detail buku dan membuat PDF."""
     base_url = 'http://www.wattpad.com'
-    initial_url = requests.utils.quote(initial_url)
+    
+    # Pastikan URL memiliki skema yang benar
+    if not initial_url.startswith("http://") and not initial_url.startswith("https://"):
+        initial_url = "https://" + initial_url
+
+    # Mengambil konten halaman
     html = BeautifulSoup(requests.get(initial_url).content, 'html.parser')
 
-    author = html.select('div.author-info__username')[0].get_text()
-    title = html.select('div.story-info__title')[0].get_text().strip()
-    coverurl = html.select('div.story-cover img')[0]['src']
+    # Ambil informasi penulis
+    author_elem = html.select('div.author-info__username')
+    author = author_elem[0].get_text() if author_elem else "Tidak Diketahui"
 
+    # Ambil informasi judul
+    title_elem = html.select('div.story-info__title')
+    title = title_elem[0].get_text().strip() if title_elem else "Tidak Diketahui"
+
+    # Ambil URL sampul
+    cover_elem = html.select('div.story-cover img')
+    coverurl = cover_elem[0]['src'] if cover_elem else ""
+
+    # Ambil daftar bab
     chapterlist = list(dict.fromkeys(html.select('.story-parts ul li a')))
     chapters = []
 
+    # Mengambil setiap bab
     for item in chapterlist:
         chaptertitle, ch_text = get_chapter(f"{base_url}{item['href']}")
         chapters.append((chaptertitle, clean_text(ch_text)))
 
+    # Membuat PDF
     pdf_file = create_pdf(title, author, coverurl, chapters)
     return pdf_file
 
@@ -121,17 +137,13 @@ async def convert_to_pdf(update: Update, context):
         return
 
     wattpad_url = context.args[0]
-    
-    # Menghapus encoding berlebih dari URL jika ada
-    #wattpad_url = requests.utils.unquote(wattpad_url)
-    
 
     # Memastikan URL memiliki skema yang benar
-    #if not wattpad_url.startswith("http://") and not wattpad_url.startswith("https://"):
-        #wattpad_url = "https://" + wattpad_url
+    if not wattpad_url.startswith("http://") and not wattpad_url.startswith("https://"):
+        wattpad_url = "https://" + wattpad_url
 
     # Debug: cetak URL yang akan digunakan
-    print(f"URl digunakan: {wattpad_url}")
+    print(f"URL digunakan: {wattpad_url}")
 
     try:
         pdf_file = get_book(wattpad_url)
