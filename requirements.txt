@@ -4,3 +4,5 @@ beautifulsoup4
 requests
 fpdf2==2.5.5 
 Werkzeug
+bs4
+ebooklib
