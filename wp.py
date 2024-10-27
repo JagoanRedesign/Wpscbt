@@ -12,14 +12,19 @@ import threading
 app = Flask(__name__)
 
 # Ganti dengan token bot Anda
-TOKEN = '6308990102:AAFH_eAfo4imTAWnQ5CZeDUFNAC35rytnT0'
+TOKEN = 'YOUR_TOKEN_HERE'
 
 chapterCount = 0
+
+# User-Agent header
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
 
 def get_cover(cover_url, cover_file):
     """Mengambil dan menyimpan gambar sampul."""
     try:
-        response = requests.get(cover_url)
+        response = requests.get(cover_url, headers=headers)
         with open(cover_file, 'wb') as f:
             f.write(response.content)
         return 1
@@ -35,7 +40,7 @@ def clean_text(text):
 
 def get_page(text_url):
     """Mengambil dan menganalisis konten halaman."""
-    response = requests.get(text_url)
+    response = requests.get(text_url, headers=headers)
     soup = BeautifulSoup(response.content, 'html.parser')
     return soup.select_one('pre').findChildren()
 
@@ -44,7 +49,7 @@ def get_chapter(url):
     global chapterCount
     chapterCount += 1
     url = requests.utils.quote(url)
-    pagehtml = BeautifulSoup(requests.get(url).content, 'html.parser')
+    pagehtml = BeautifulSoup(requests.get(url, headers=headers).content, 'html.parser')
     
     pages_re = re.compile('"pages":([0-9]*),', re.IGNORECASE)
     pages = int(pages_re.search(str(pagehtml)).group(1))
@@ -103,7 +108,6 @@ def create_pdf(title, author, cover_url, chapters):
     pdf.output(pdf_file)
     return pdf_file
 
-
 def get_book(initial_url):
     """Mengambil detail buku dan membuat PDF."""
     base_url = 'http://www.wattpad.com'
@@ -114,7 +118,7 @@ def get_book(initial_url):
 
     # Mengambil konten halaman
     try:
-        html = BeautifulSoup(requests.get(initial_url).content, 'html.parser')
+        html = BeautifulSoup(requests.get(initial_url, headers=headers).content, 'html.parser')
     except Exception as e:
         raise ValueError(f"Gagal mengambil halaman: {e}")
 
@@ -143,15 +147,10 @@ def get_book(initial_url):
     # Membuat PDF
     pdf_file = create_pdf(title, author, coverurl, chapters)
     return pdf_file
-    
-    
-    
-    
 
 async def start(update: Update, context):
     """Handler untuk perintah mulai."""
     await context.bot.send_message(chat_id=update.message.chat_id, text='Selamat datang! Kirimkan URL cerita Wattpad yang ingin diubah menjadi PDF.')
-
 
 async def convert_to_pdf(update: Update, context):
     """Mengonversi cerita Wattpad menjadi PDF."""
