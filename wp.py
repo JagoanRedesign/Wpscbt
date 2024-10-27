@@ -9,6 +9,7 @@ from telegram.ext import CommandHandler, ApplicationBuilder
 import threading
 from gslibs.gsepub import MyBook
 
+
 # Inisialisasi Flask
 app = Flask(__name__)
 
