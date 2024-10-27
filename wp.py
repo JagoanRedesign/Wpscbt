@@ -6,6 +6,7 @@ from fpdf import FPDF
 from flask import Flask
 from telegram import Bot, Update
 from telegram.ext import CommandHandler, ApplicationBuilder
+import threading
 
 # Inisialisasi Flask
 app = Flask(__name__)
@@ -128,6 +129,10 @@ def convert_to_pdf(update: Update, context):
     except Exception as e:
         context.bot.send_message(chat_id=update.message.chat_id, text=f'Gagal mengambil cerita dari Wattpad. Kesalahan: {e}')
 
+def run_flask():
+    """Menjalankan aplikasi Flask."""
+    app.run(host='0.0.0.0', port=8000)
+
 def main():
     """Fungsi utama untuk menjalankan bot Telegram."""
     application = ApplicationBuilder().token(TOKEN).build()
@@ -140,8 +145,9 @@ def main():
     application.run_polling()
 
 if __name__ == '__main__':
-    # Jalankan aplikasi Flask
-    app.run(host='0.0.0.0', port=8000)
+    # Mulai Flask dalam thread terpisah
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.start()
 
     # Jalankan bot Telegram
     main()
