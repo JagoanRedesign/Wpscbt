@@ -4,3 +4,4 @@ beautifulsoup4
 requests
 fpdf
 Werkzeug
+fpdf2
